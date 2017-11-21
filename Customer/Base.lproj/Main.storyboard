@@ -26,7 +26,7 @@
                                     <autoresizingMask key="autoresizingMask"/>
                                 </tableViewCellContentView>
                                 <connections>
-                                    <segue destination="9uO-BU-qem" kind="show" identifier="to_details" id="JI7-Ly-Yey"/>
+                                    <segue destination="1sF-ds-qT2" kind="show" identifier="to_details" id="c7d-ct-2x1"/>
                                 </connections>
                             </tableViewCell>
                         </prototypes>
@@ -42,22 +42,32 @@
             <point key="canvasLocation" x="541" y="-309"/>
         </scene>
         <!--Details-->
-        <scene sceneID="Tgi-y1-lmN">
+        <scene sceneID="F5j-Aa-Wn8">
             <objects>
-                <viewController storyboardIdentifier="CustomerDetails" title="Details" id="9uO-BU-qem" customClass="DetailViewController" customModule="Customer" sceneMemberID="viewController">
-                    <layoutGuides>
-                        <viewControllerLayoutGuide type="top" id="SLw-jM-X08"/>
-                        <viewControllerLayoutGuide type="bottom" id="yzV-Cb-C4y"/>
-                    </layoutGuides>
-                    <view key="view" contentMode="scaleToFill" id="BGe-uv-WrO">
+                <tableViewController title="Details" id="1sF-ds-qT2" customClass="DetailViewController" customModule="Customer" sceneMemberID="viewController">
+                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="nPf-Pz-XQC">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                    </view>
-                </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="5af-Yx-lcH" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                        <prototypes>
+                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="cell" id="hf8-h7-bM1">
+                                <rect key="frame" x="0.0" y="28" width="375" height="44"/>
+                                <autoresizingMask key="autoresizingMask"/>
+                                <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="hf8-h7-bM1" id="chN-1T-cPV">
+                                    <rect key="frame" x="0.0" y="0.0" width="375" height="43.5"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </tableViewCellContentView>
+                            </tableViewCell>
+                        </prototypes>
+                        <connections>
+                            <outlet property="dataSource" destination="1sF-ds-qT2" id="b21-Yi-jLo"/>
+                            <outlet property="delegate" destination="1sF-ds-qT2" id="wnf-Nd-iho"/>
+                        </connections>
+                    </tableView>
+                </tableViewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="fZn-T3-4sp" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="540" y="511"/>
+            <point key="canvasLocation" x="564" y="534"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="vcZ-rQ-OJJ">
