@@ -12,9 +12,13 @@ import SAPOData
 import SAPFiori
 import SAPCommon
 
+import MapKit
+
 
 class DetailViewController: FUIFormTableViewController {
 
+    // MARK: Properties
+    
     private let appDelegate = UIApplication.shared.delegate as! AppDelegate
     private let logger: Logger = Logger.shared(named: "DetailViewController")
     
@@ -26,6 +30,10 @@ class DetailViewController: FUIFormTableViewController {
     }
     
     var objectHeader: FUIObjectHeader!
+    
+    @IBOutlet weak var map: MKMapView!
+    let latitudinalMetres = 1_000_000.0
+    let longitudinalMetres = 1_000_000.0
     
     
     override func viewDidLoad() {
@@ -55,6 +63,10 @@ class DetailViewController: FUIFormTableViewController {
         tableView.estimatedRowHeight = 44
         tableView.rowHeight = UITableViewAutomaticDimension
         tableView.separatorStyle = .none
+        
+        // Setup Map
+        map.mapType = .hybrid
+        geoCode(country: _entity.country!, city: _entity.city!)
     }
 
     override func didReceiveMemoryWarning() {
@@ -95,6 +107,55 @@ class DetailViewController: FUIFormTableViewController {
             }
             
             return simplePropertyCell
+        }
+    }
+    
+    func geoCode(country : String, city: String) {
+        let address = "\(country), \(city)"
+        let geo = CLGeocoder()
+        geo.geocodeAddressString(address) { (placemarks, error) in
+            if let error = error {
+                print("Unable to Forward Geocode Address (\(error))")
+                FUIToastMessage.show(message: "Unable to geocode address")
+            } else {
+                var location: CLLocation?
+                
+                if let placemarks = placemarks, placemarks.count > 0 {
+                    location = placemarks.first?.location
+                }
+                
+                if let location = location {
+                    let coordinate = location.coordinate
+                    print("\(coordinate.latitude), \(coordinate.longitude)")
+                    let annotation = MKPointAnnotation()
+                    annotation.coordinate = CLLocationCoordinate2DMake(coordinate.latitude, coordinate.longitude)
+                    annotation.title = self._entity.city!
+                    
+                    self.map.addAnnotation(annotation)
+                    
+                    if #available(iOS 11.0, *) {
+                        // The FUIMarkerAnnotationView is only available from iOS 11
+                        class FioriMarker : FUIMarkerAnnotationView {
+                            override var annotation: MKAnnotation? {
+                                willSet {
+                                    markerTintColor = .preferredFioriColor(forStyle: .map1)
+                                    glyphImage = FUIIconLibrary.map.marker.venue.withRenderingMode(.alwaysTemplate)
+                                    displayPriority = .defaultHigh
+                                }
+                            }
+                        }
+                        
+                        self.map.register(FioriMarker.self, forAnnotationViewWithReuseIdentifier: MKMapViewDefaultAnnotationViewReuseIdentifier)
+                        
+                        // center map
+                        let coordinateRegion = MKCoordinateRegionMakeWithDistance(coordinate, self.latitudinalMetres, self.longitudinalMetres)
+                        self.map.setRegion(coordinateRegion, animated: true)
+                    }
+                } else {
+                    print("No Matching Location Found")
+                    FUIToastMessage.show(message: "Unable to find City in Map")
+                }
+            }
         }
     }
     
