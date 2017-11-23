@@ -315,9 +315,12 @@ class CustomerTableViewController: FUIFormTableViewController, SAPFioriLoadingIn
      Initialise the Offline OData Store by downloading the defining entities.
     */
     func initOfflineSyncProcess() {
+        self.showFioriLoadingIndicator("Syncing data for offline use")
+        
         myServiceClass.provider.open { error in
             guard error == nil else {
                 print("Error opening offline store")
+                self.hideFioriLoadingIndicator()
                 return
             }
             
@@ -325,11 +328,13 @@ class CustomerTableViewController: FUIFormTableViewController, SAPFioriLoadingIn
                 guard error == nil else {
                     print("Error downloading to offline store")
                     try! self.myServiceClass.provider.close()
+                    self.hideFioriLoadingIndicator()
                     return
                 }
                 
                 print("Offline store updated (download complete)")
                 try! self.myServiceClass.provider.close()
+                self.hideFioriLoadingIndicator()
                 
                 self.updateTable()
             }
