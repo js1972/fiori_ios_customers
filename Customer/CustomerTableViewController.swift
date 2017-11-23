@@ -47,7 +47,6 @@ class CustomerTableViewController: FUIFormTableViewController, SAPFioriLoadingIn
         self.edgesForExtendedLayout = []
         self.tableView.rowHeight = UITableViewAutomaticDimension
         self.tableView.estimatedRowHeight = 98
-        self.updateTable()
         
         eventStore = EKEventStore()
         eventStore.requestAccess(to: EKEntityType.reminder, completion: {(granted, error) in
@@ -59,11 +58,15 @@ class CustomerTableViewController: FUIFormTableViewController, SAPFioriLoadingIn
         calendars = eventStore.calendars(for: EKEntityType.reminder)
         checkIfCustomersReminderListExists()
         
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(refresh), for: .valueChanged)
+        tableView.refreshControl = refreshControl
 
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
+        
+        initOfflineSyncProcess()
+        //updateTable()
     }
 
     override func didReceiveMemoryWarning() {
@@ -125,55 +128,51 @@ class CustomerTableViewController: FUIFormTableViewController, SAPFioriLoadingIn
      (This should be pulled out into separate method.)
     */
     func requestEntities(completionHandler: @escaping (Error?) -> Void) {
-        if (!self.isStoreOpened) {
+        //if (!self.isStoreOpened) {
             // try opening the store
-            print("Opening the offline store")
             self.myServiceClass.provider.open { error in
-                print("In the offline store closure")
                 guard error == nil else {
+                    print("Error opening the offline store in requestEntities()")
                     self.logger.error("Offline store could not be opened", error: error)
                     completionHandler(error!)
                     return
                 }
                 
                 // set flag indicating store is open
-                self.isStoreOpened = true
+                //self.isStoreOpened = true
                 
                 // download data
-                print("Downloading/caching customer data to offline store")
-                self.myServiceClass.provider.download { error in
-                    guard error == nil else {
-                        // in case of error, close store and reset flag
-                        self.logger.info("Could not download store", error: error)
-                        try! self.myServiceClass.provider.close()
-                        self.isStoreOpened = false
-                        completionHandler(error!)
-                        return
-                    }
+                //print("Downloading/caching customer data to offline store")
+                //self.myServiceClass.provider.download { error in
+                //    guard error == nil else {
+                //        // in case of error, close store and reset flag
+                //        self.logger.info("Could not download store", error: error)
+                //        try! self.myServiceClass.provider.close()
+                //        self.isStoreOpened = false
+                //        completionHandler(error!)
+                //        return
+                //    }
                 
                     // Only request the first 30 values. If you want to modify the requested entities, you can do it here.
-                    print("Fetching customer data")
+                    print("Fetching customer data (top-30) in requestEntities()")
                     let query = DataQuery().selectAll().top(30)
                     self.myServiceClass.fetchCustomers(matching: query) { customers, error in
                         guard let customers = customers else {
                             try! self.myServiceClass.provider.close()
-                            self.isStoreOpened = false
+                            //self.isStoreOpened = false
                             completionHandler(error!)
                             return
                         }
+                        
                         self.entities = customers
                         try! self.myServiceClass.provider.close()
-                        self.isStoreOpened = false
+                        //self.isStoreOpened = false
                         completionHandler(nil)
                     }
                     
-                } // download store
-                
-                // once finished, close store and reset flag
-                //try! self.myServiceClass.provider.close()
-                //self.isStoreOpened = false
-            } // open store
-        } // if store is opened?
+                //}
+            }
+        //}
     }
     
     // MARK: - Table update
@@ -311,6 +310,32 @@ class CustomerTableViewController: FUIFormTableViewController, SAPFioriLoadingIn
             }
         }
     }
+    
+    /**
+     Initialise the Offline OData Store by downloading the defining entities.
+    */
+    func initOfflineSyncProcess() {
+        myServiceClass.provider.open { error in
+            guard error == nil else {
+                print("Error opening offline store")
+                return
+            }
+            
+            self.myServiceClass.provider.download { error in
+                guard error == nil else {
+                    print("Error downloading to offline store")
+                    try! self.myServiceClass.provider.close()
+                    return
+                }
+                
+                print("Offline store updated (download complete)")
+                try! self.myServiceClass.provider.close()
+                
+                self.updateTable()
+            }
+        }
+    }
+    
     
     /*
     // Override to support conditional editing of the table view.
