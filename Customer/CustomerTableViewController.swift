@@ -9,6 +9,7 @@
 import Foundation
 import SAPFoundation
 import SAPOData
+import SAPOfflineOData
 import SAPFiori
 import SAPCommon
 
@@ -19,9 +20,10 @@ class CustomerTableViewController: FUIFormTableViewController, SAPFioriLoadingIn
 
     private let appDelegate = UIApplication.shared.delegate as! AppDelegate
     
-    private var myServiceClass: MyPrefixMyServiceClass<OnlineODataProvider> {
+    private var myServiceClass: MyPrefixMyServiceClass<OfflineODataProvider> {
         return self.appDelegate.myServiceClass
     }
+    var isStoreOpened = false
     
     private var entities: [MyPrefixCustomer] = [MyPrefixCustomer]( )
     private let logger = Logger.shared(named: "CustomerViewControllerLogger")
@@ -117,17 +119,61 @@ class CustomerTableViewController: FUIFormTableViewController, SAPFioriLoadingIn
 
     // MARK: - Data accessing
     
+    /**
+     Perform the actual OData request to the backend.
+     We have added logic to open the offline store and close it when finished.
+     (This should be pulled out into separate method.)
+    */
     func requestEntities(completionHandler: @escaping (Error?) -> Void) {
-        // Only request the first 20 values. If you want to modify the requested entities, you can do it here.
-        let query = DataQuery().selectAll().top(20)
-        self.myServiceClass.fetchCustomers(matching: query) { customers, error in
-            guard let customers = customers else {
-                completionHandler(error!)
-                return
-            }
-            self.entities = customers
-            completionHandler(nil)
-        }
+        if (!self.isStoreOpened) {
+            // try opening the store
+            print("Opening the offline store")
+            self.myServiceClass.provider.open { error in
+                print("In the offline store closure")
+                guard error == nil else {
+                    self.logger.error("Offline store could not be opened", error: error)
+                    completionHandler(error!)
+                    return
+                }
+                
+                // set flag indicating store is open
+                self.isStoreOpened = true
+                
+                // download data
+                print("Downloading/caching customer data to offline store")
+                self.myServiceClass.provider.download { error in
+                    guard error == nil else {
+                        // in case of error, close store and reset flag
+                        self.logger.info("Could not download store", error: error)
+                        try! self.myServiceClass.provider.close()
+                        self.isStoreOpened = false
+                        completionHandler(error!)
+                        return
+                    }
+                
+                    // Only request the first 30 values. If you want to modify the requested entities, you can do it here.
+                    print("Fetching customer data")
+                    let query = DataQuery().selectAll().top(30)
+                    self.myServiceClass.fetchCustomers(matching: query) { customers, error in
+                        guard let customers = customers else {
+                            try! self.myServiceClass.provider.close()
+                            self.isStoreOpened = false
+                            completionHandler(error!)
+                            return
+                        }
+                        self.entities = customers
+                        try! self.myServiceClass.provider.close()
+                        self.isStoreOpened = false
+                        completionHandler(nil)
+                    }
+                    
+                } // download store
+                
+                // once finished, close store and reset flag
+                //try! self.myServiceClass.provider.close()
+                //self.isStoreOpened = false
+            } // open store
+        } // if store is opened?
     }
     
     // MARK: - Table update

@@ -11,6 +11,8 @@ import SAPFoundation
 import SAPCommon
 import UserNotifications
 import SAPOData
+import SAPOfflineOData
+
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate, UINavigationControllerDelegate, OnboardingManagerDelegate, UNUserNotificationCenterDelegate {
@@ -18,7 +20,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UINavigationControllerDel
     var window: UIWindow?
 
     private let logger = Logger.shared(named: "AppDelegateLogger")
-    var myServiceClass: MyPrefixMyServiceClass<OnlineODataProvider>!
+    //var myServiceClass: MyPrefixMyServiceClass<OnlineODataProvider>!
+    var myServiceClass: MyPrefixMyServiceClass<OfflineODataProvider>!
+    
 
     func application(_: UIApplication, didFinishLaunchingWithOptions _: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
 
@@ -150,13 +154,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UINavigationControllerDel
     }
 
     // MARK: - Configure OData
+    // Change for offline
     private func configureOData(_ urlSession: SAPURLSession, _ serviceRoot: URL) {
-        let odataProvider = OnlineODataProvider(serviceName: "MyPrefixMyServiceClass", serviceRoot: serviceRoot, sapURLSession: urlSession)
+        //let odataProvider = OnlineODataProvider(serviceName: "MyPrefixMyServiceClass", serviceRoot: serviceRoot, sapURLSession: urlSession)
+        var offlineParameters = OfflineODataParameters()
+        offlineParameters.storeName = "OFFLINE_STORE"
+        offlineParameters.enableRepeatableRequests = true
+        let offlineOdataProvider = try! OfflineODataProvider(serviceRoot: serviceRoot, parameters: offlineParameters, sapURLSession: urlSession)
+        
+        // define offline defining query - GET ALL CUSTOMERS
+        try! offlineOdataProvider.add(definingQuery: OfflineODataDefiningQuery(name: "Customers", query: "/Customers", automaticallyRetrievesStreams: false))
+        
         // Disables version validation of the backend OData service
         // TODO: Should only be used in demo and test applications
-        odataProvider.serviceOptions.checkVersion = false
-        self.myServiceClass = MyPrefixMyServiceClass(provider: odataProvider)
+        //odataProvider.serviceOptions.checkVersion = false
+        self.myServiceClass = MyPrefixMyServiceClass(provider: offlineOdataProvider)
         // To update entity force to use X-HTTP-Method header
-        self.myServiceClass.provider.networkOptions.tunneledMethods.append("MERGE")
+        //self.myServiceClass.provider.networkOptions.tunneledMethods.append("MERGE")
     }
 }
